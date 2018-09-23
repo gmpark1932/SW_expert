@@ -1,0 +1,121 @@
+#include <iostream>
+#include <vector>
+#include <bitset>
+
+#define MAX_N 22
+#define MAX_DESERT 110
+
+using namespace std;
+
+int desert_array[MAX_N][MAX_N];
+
+enum Direction{UR,UL,DL,DR};
+
+int N;
+
+bool movePoint(int &col, int &row, Direction dir) {
+	switch (dir) {
+	case UR: {
+		if (col - 1 >= 0 && row + 1 <= N - 1) {
+			col -= 1;
+			row += 1;
+			return true;
+		}
+	}break;
+	case UL: {
+		if (col - 1 >= 0 && row - 1 >= 0) {
+			col -= 1;
+			row -= 1;
+			return true;
+		}
+	}break;
+	case DL: {
+		if (col + 1 <= N - 1 && row - 1 >= 0) {
+			col += 1;
+			row -= 1;
+			return true;
+		}
+	}break;
+	case DR: {
+		if (col + 1 <= N - 1 && row + 1 <= N - 1) {
+			col += 1;
+			row += 1;
+			return true;
+		}
+	}break;
+	}
+	return false;
+}
+
+int SearchPathFromPoint(int start_col, int start_row, int up_right, int up_left) {
+	bitset<MAX_DESERT> used_desert;
+	int now_col, now_row;
+	now_col = start_col;
+	now_row = start_row;
+	for (int i = 0; i < up_right; i++) {
+		used_desert.set(desert_array[now_col][now_row]);
+		movePoint(now_col, now_row, UR);
+	}
+	for (int i = 0; i < up_left; i++) {
+		used_desert.set(desert_array[now_col][now_row]);
+		movePoint(now_col, now_row, UL);
+	}
+	for (int i = 0; i < up_right; i++) {
+		used_desert.set(desert_array[now_col][now_row]);
+		movePoint(now_col, now_row, DL);
+	}
+	for (int i = 0; i < up_left; i++) {
+		used_desert.set(desert_array[now_col][now_row]);
+		movePoint(now_col, now_row, DR);
+	}
+	if (used_desert.count() == (up_right + up_left) * 2)
+		return used_desert.count();
+	else
+		return 0;
+}
+
+int GetDesertPath(int start_col, int start_row) {
+	int up_right, up_left;
+	int max = 0;
+	for (up_right = 1; start_col - up_right >= 0 && start_row + up_right < N; up_right++) {
+		for (up_left = 1; start_col - up_left >= 0 && start_row - up_left >= 0; up_left++) {
+			int temp_max = SearchPathFromPoint(start_col, start_row, up_right, up_left);
+			if (temp_max > max) max = temp_max;
+		}
+	}
+	return max;
+}
+
+int Solution(void) {
+	int max_path = 0;
+	int start_col, start_row;
+	for (start_col = 0; start_col < N; start_col++) {
+		for (start_row = 0; start_row < N; start_row++) {
+			int temp_max_path = GetDesertPath(start_col, start_row);
+			if (temp_max_path > max_path) max_path = temp_max_path;
+		}
+	}
+	if (max_path == 0) return -1;
+	else return max_path;
+}
+
+int main(void) {
+	int T;
+	cin >> T;
+	for (int t = 0; t < T; t++) {
+		cin >> N;
+		for (int i = 0; i < N; i++) {
+			for (int j = 0; j < N; j++) {
+				int c;
+				cin >> c;
+				desert_array[i][j] = c;
+			}
+		}
+
+		int result = Solution();
+		cout << "#" << t + 1 << " " << result << endl;
+	}
+	system("pause");
+
+	return 0;
+}
