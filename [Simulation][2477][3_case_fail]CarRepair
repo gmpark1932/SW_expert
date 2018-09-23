@@ -1,0 +1,136 @@
+#include <iostream>
+#include <cstring>
+#include <queue>
+#include <algorithm>
+#include <vector>
+
+using namespace std;
+
+#define MAX_NM 11
+#define MAX_K 2000
+
+vector<int> reception_delay;
+vector<int> repair_delay;
+vector<int> customer_arrive;
+vector<int> reception_ready;
+vector<int> repair_ready;
+vector<int> used_reception;
+
+int N, M, K, A, B;
+
+void time_flow(vector<int> &ready_array) {
+	for (int i = 0; i < ready_array.size(); i++) {
+		if (ready_array[i] > 0) ready_array[i]--;
+	}
+}
+
+int findUsableDesk(vector<int> desk_array) {
+	for (int i = 0; i < desk_array.size(); i++) {
+		if (desk_array[i] == 0) return i;
+	}
+	return -1;
+}
+
+struct cmp {
+	bool operator()(pair<int, int> a, pair<int, int> b) {
+		if (a.second == b.second) return used_reception[a.first] > used_reception[b.first];
+		return a.second > b.second;
+	}
+};
+
+int Solution(void) {
+	int result = 0;
+	//sort(customer_arrive.begin(), customer_arrive.end());
+	int now_customer = 0;
+	priority_queue<pair<int, int>, vector<pair<int, int>>, cmp> ready_for_repair;
+	// < customer_id, repair_queue_arrive_time >
+
+	for (int t = 0; t < MAX_K; t++) {
+		if (now_customer >= customer_arrive.size()) break;
+		for (int i = now_customer; i < customer_arrive.size(); i++) {
+			if (customer_arrive[i] > t) break;
+			
+			int foundDesk = findUsableDesk(reception_ready);
+			
+			if (foundDesk == -1) break;
+			else {
+				reception_ready[foundDesk] = reception_delay[foundDesk];
+				ready_for_repair.push(make_pair(i, t + reception_delay[foundDesk]));
+				used_reception[i] = foundDesk;
+				now_customer++;
+			}
+		}
+		time_flow(reception_ready);
+	}
+	
+	for (int t = 0; t < MAX_K; ) {
+		if (ready_for_repair.empty() == true) break;
+		pair<int, int> now = ready_for_repair.top();
+		if (now.second > t) {
+			t++;
+			time_flow(repair_ready);
+		}
+		else {
+			int foundDesk = findUsableDesk(repair_ready);
+
+			if (foundDesk == -1) {
+				t++;
+				time_flow(repair_ready);
+			}
+			else {
+				repair_ready[foundDesk] = repair_delay[foundDesk];
+				if (foundDesk == B && used_reception[now.first] == A) result += (now.first + 1);
+				ready_for_repair.pop();
+			}
+		}
+	}
+
+	if (result == 0) return -1;
+	return result;
+}
+
+int main(void) {
+	int T;
+	cin >> T;
+	for (int t = 0; t < T; t++) {
+		cin >> N >> M >> K >> A >> B;
+		A--;
+		B--;
+		
+		reception_delay.clear();
+		repair_delay.clear();
+		customer_arrive.clear();
+		reception_ready.clear();
+		repair_ready.clear();
+		used_reception.clear();
+
+		for (int n = 0; n < N; n++) {
+			int in_a;
+			cin >> in_a;
+			reception_delay.push_back(in_a);
+			reception_ready.push_back(0);
+		}
+
+		for (int m = 0; m < M; m++) {
+			int in_b;
+			cin >> in_b;
+			repair_delay.push_back(in_b);
+			repair_ready.push_back(0);
+		}
+
+		for (int k = 0; k < K; k++) {
+			int in_k;
+			cin >> in_k;
+			customer_arrive.push_back(in_k);
+			used_reception.push_back(0);
+		}
+
+		int result = Solution();
+
+		cout << "#" << t + 1 << " " << result << endl;
+	}
+
+	system("pause");
+
+	return 0;
+}
