@@ -1,0 +1,68 @@
+#include <iostream>
+#include <cstring>
+#include <algorithm>
+
+using namespace std;
+
+#define MAX_N 14
+#define LAST_MONTH 11
+#define MAX_TICKET 5
+
+enum TICKET{DAY,ONE_M,THREE_M,ONE_Y};
+
+int using_plan[MAX_N];
+int ticket_array[MAX_TICKET];
+int memory[MAX_N];
+
+int getTicket(TICKET t) {
+	switch (t) {
+	case DAY: return ticket_array[0];
+	case ONE_M: return ticket_array[1];
+	case THREE_M: return ticket_array[2];
+	case ONE_Y: return ticket_array[3];
+	}
+}
+
+int getMinSolFromThisMonth(int start_month) {
+	if (start_month > LAST_MONTH) return 0;
+	if (memory[start_month] != -1) return memory[start_month];
+
+	int day, one_m, three_m;
+	day = one_m = three_m = 0;
+	day = getTicket(DAY) * using_plan[start_month] + getMinSolFromThisMonth(start_month + 1);
+	one_m = getTicket(ONE_M) + getMinSolFromThisMonth(start_month + 1);
+	three_m = getTicket(THREE_M) + getMinSolFromThisMonth(start_month + 3);
+
+	int result = min(min(day, one_m), three_m);
+	memory[start_month] = result;
+	return result;
+}
+
+int main(void) {
+	int T;
+	cin >> T;
+	for (int t = 0; t < T; t++) {
+		memset(using_plan, 0, sizeof(using_plan));
+		memset(ticket_array, 0, sizeof(ticket_array));
+		memset(memory, 0xff, sizeof(memory));
+
+		for (int i = 0; i < 4; i++) {
+			int tic;
+			cin >> tic;
+			ticket_array[i] = tic;
+		}
+
+		for (int i = 0; i <= LAST_MONTH; i++) {
+			int plan;
+			cin >> plan;
+			using_plan[i] = plan;
+		}
+
+		int result = getMinSolFromThisMonth(0);
+		if (result > getTicket(ONE_Y)) result = getTicket(ONE_Y);
+
+		cout << "#" << t + 1 << " " << result << endl;
+	}
+
+	return 0;
+}
