@@ -1,0 +1,108 @@
+#include <iostream>
+#include <cstring>
+#include <queue>
+
+using namespace std;
+
+#define MAX_NM 55
+#define MAX_L 22
+
+enum TunStr {NONE, ALL, UD, LR, UR, DR, DL, UL };
+enum FromDir { UP, DOWN, LEFT, RIGHT };
+
+TunStr base_map[MAX_NM][MAX_NM];
+int visited_map[MAX_NM][MAX_NM];
+
+int N, M, R, C, L;
+
+bool canGoFrom(pair<int,int> point, FromDir from_dir) {
+	TunStr ts = base_map[point.first][point.second];
+	
+	switch (from_dir) {
+	case UP: {
+		if (ts == ALL || ts == UD || ts == UR || ts == UL) return true;
+	}break;
+	case DOWN: {
+		if (ts == ALL || ts == UD || ts == DR || ts == DL) return true;
+	}break;
+	case LEFT: {
+		if (ts == ALL || ts == LR || ts == UL || ts == DL) return true;
+	}break;
+	case RIGHT: {
+		if (ts == ALL || ts == LR || ts == UR || ts == DR) return true;
+	}break;
+	}
+
+	return false;
+}
+
+void pushToQueue(queue<pair<int, int>> &queue, pair<int, int> now_point, TunStr ts, int time) {
+	int result = 0;
+	if (now_point.first - 1 >= 0 && visited_map[now_point.first - 1][now_point.second] == -1 && canGoFrom(make_pair(now_point.first - 1,now_point.second) , DOWN) == true) {
+		if (ts == ALL || ts == UD || ts == UR || ts == UL) {
+			queue.push(make_pair(now_point.first - 1, now_point.second));
+			visited_map[now_point.first - 1][now_point.second] = time;
+		}
+	}
+	if (now_point.first + 1 <= N - 1 && visited_map[now_point.first + 1][now_point.second] == -1 && canGoFrom(make_pair(now_point.first + 1, now_point.second), UP) == true) {
+		if (ts == ALL || ts == UD || ts == DR || ts == DL) {
+			queue.push(make_pair(now_point.first + 1, now_point.second));
+			visited_map[now_point.first + 1][now_point.second] = time;
+		}
+	}
+	if (now_point.second - 1 >= 0 && visited_map[now_point.first][now_point.second - 1] == -1 && canGoFrom(make_pair(now_point.first, now_point.second - 1), RIGHT) == true) {
+		if (ts == ALL || ts == LR || ts == UL || ts == DL) {
+			queue.push(make_pair(now_point.first, now_point.second - 1));
+			visited_map[now_point.first][now_point.second - 1] = time;
+		}
+	}
+	if (now_point.second + 1 <= M - 1 && visited_map[now_point.first][now_point.second + 1] == -1 && canGoFrom(make_pair(now_point.first, now_point.second + 1), LEFT) == true) {
+		if (ts == ALL || ts == LR || ts == UR || ts == DR) {
+			queue.push(make_pair(now_point.first, now_point.second + 1));
+			visited_map[now_point.first][now_point.second + 1] = time;
+		}
+	}
+}
+
+int bfs(int start_row, int start_col, int limit_time) {
+	queue<pair<int, int>> queue_point;
+	queue_point.push(make_pair(start_row, start_col));
+	int now_time = 0;
+	int count = 0;
+	visited_map[start_row][start_col] = 0;
+
+	while (queue_point.empty() == false) {
+		pair<int, int> now_point = queue_point.front();
+		queue_point.pop();
+		now_time = visited_map[now_point.first][now_point.second];
+		if (now_time < limit_time) count++;
+		pushToQueue(queue_point, now_point, base_map[now_point.first][now_point.second], now_time + 1);
+	}
+
+	return count;
+}
+
+int main(void) {
+	int T;
+	cin >> T;
+
+	for (int t = 0; t < T; t++) {
+		memset(base_map, 0x00, sizeof(base_map));
+		memset(visited_map, 0xff, sizeof(visited_map));
+
+		cin >> N >> M >> R >> C >> L;
+		for (int n = 0; n < N; n++) {
+			for (int m = 0; m < M; m++) {
+				int in_c;
+				cin >> in_c;
+				base_map[n][m] = (TunStr)(in_c);
+			}
+		}
+
+		int result = bfs(R, C, L);
+		cout << "#" << t + 1 << " " << result << endl;
+	}
+
+
+	return 0;
+}
