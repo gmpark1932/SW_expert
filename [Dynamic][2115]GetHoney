@@ -1,0 +1,105 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cstring>
+
+using namespace std;
+
+#define MAX_N 12
+#define MAX_M 7
+#define MAX_C 33
+
+using namespace std;
+
+int honey_array[MAX_N][MAX_N];
+int profit_array[MAX_N][MAX_N];
+int right_max[MAX_N][MAX_N];
+
+int N, M, C;
+
+bool larger_int(int a, int b) {
+	return a > b;
+}
+
+int getProfit(int col, int start_row, int end_row, int carry_limit) {
+	if (start_row > end_row) return 0;
+	if (carry_limit == 0) return 0;
+
+	int use_start, use_not_start;
+	use_start = use_not_start = 0;
+	int honey = honey_array[col][start_row];
+
+	if (carry_limit >= honey)
+		use_start = honey * honey + getProfit(col, start_row + 1, end_row, carry_limit - honey);
+	use_not_start = getProfit(col, start_row + 1, end_row, carry_limit);
+
+	if (use_start > use_not_start) return use_start;
+	return use_not_start;
+}
+
+int Solution(void) {
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j <= N - M; j++) {
+			profit_array[i][j] = getProfit(i, j, j + M - 1, C);
+		}
+	}
+
+	int max = 0;
+	for (int i = N-1; i >= 0; i--) {
+		if (i != N - 1) {
+			for (int j = N; j > N - M; j--) {
+				right_max[i][j] = max;
+			}
+		}
+		for (int j = N - M; j >= 0; j--) {
+			if (max < profit_array[i][j]) {
+				max = profit_array[i][j];
+				right_max[i][j] = max;
+			}
+			else {
+				right_max[i][j] = max;
+			}
+		}
+	}
+
+	max = 0;
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j <= N - M; j++) {
+			int temp_max = profit_array[i][j] + right_max[i][j + M];
+			if (temp_max > max) max = temp_max;
+		}
+	}
+
+	return max;
+}
+
+int main(void) {
+	int T;
+	cin >> T;
+	for (int t = 0; t < T; t++) {
+		memset(profit_array, 0, sizeof(profit_array));
+		memset(right_max, 0, sizeof(right_max));
+		memset(honey_array, 0, sizeof(honey_array));
+
+		cin >> N >> M >> C;
+
+
+		for (int i = 0; i < N; i++) {
+			for (int j = 0; j < N; j++) {
+				int in_c;
+				cin >> in_c;
+				honey_array[i][j] = in_c;
+			}
+		}
+
+
+
+		int result = Solution();
+
+		cout << "#" << t+1 << " " << result << endl;
+	}
+
+	//system("pause");
+
+	return 0;
+}
