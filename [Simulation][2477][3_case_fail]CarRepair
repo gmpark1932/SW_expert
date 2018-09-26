@@ -1,136 +1,169 @@
 #include <iostream>
-#include <cstring>
 #include <queue>
 #include <algorithm>
 #include <vector>
 
 using namespace std;
 
-#define MAX_NM 11
-#define MAX_K 2000
+queue<pair<int,int>> customer_arrive;
+queue<int> repair_queue;
 
-vector<int> reception_delay;
+vector<int> recep_delay;
 vector<int> repair_delay;
-vector<int> customer_arrive;
-vector<int> reception_ready;
+vector<int> recep_ready;
 vector<int> repair_ready;
-vector<int> used_reception;
+vector<int> customer_using_recep;
+vector<int> customer_using_repair;
+vector<int> recep_used_by_customer;
 
-int N, M, K, A, B;
+#define MAX_TIME 2000
+#define NO_EMPTY_DESK -1
 
-void time_flow(vector<int> &ready_array) {
-	for (int i = 0; i < ready_array.size(); i++) {
-		if (ready_array[i] > 0) ready_array[i]--;
+int findEmptyDesk(vector<int> desks) {
+	for (int i = 1; i < desks.size(); i++) {
+		if (desks[i] == 0) return i;
 	}
+	return NO_EMPTY_DESK;
 }
 
-int findUsableDesk(vector<int> desk_array) {
-	for (int i = 0; i < desk_array.size(); i++) {
-		if (desk_array[i] == 0) return i;
-	}
-	return -1;
-}
-
-struct cmp {
-	bool operator()(pair<int, int> a, pair<int, int> b) {
-		if (a.second == b.second) return used_reception[a.first] > used_reception[b.first];
-		return a.second > b.second;
-	}
-};
-
-int Solution(void) {
-	int result = 0;
-	//sort(customer_arrive.begin(), customer_arrive.end());
-	int now_customer = 0;
-	priority_queue<pair<int, int>, vector<pair<int, int>>, cmp> ready_for_repair;
-	// < customer_id, repair_queue_arrive_time >
-
-	for (int t = 0; t < MAX_K; t++) {
-		if (now_customer >= customer_arrive.size()) break;
-		for (int i = now_customer; i < customer_arrive.size(); i++) {
-			if (customer_arrive[i] > t) break;
-			
-			int foundDesk = findUsableDesk(reception_ready);
-			
-			if (foundDesk == -1) break;
-			else {
-				reception_ready[foundDesk] = reception_delay[foundDesk];
-				ready_for_repair.push(make_pair(i, t + reception_delay[foundDesk]));
-				used_reception[i] = foundDesk;
-				now_customer++;
+void timeFlowInDesk(vector<int> &desks, vector<int> customer_using_desk, queue<int> &ready_queue) {
+	for (int i = 1; i < desks.size(); i++) {
+		if (desks[i] > 0) {
+			desks[i]--;
+			if (desks[i] == 0) {
+				ready_queue.push(customer_using_desk[i]);
+				customer_using_desk[i] = 0;
 			}
 		}
-		time_flow(reception_ready);
 	}
-	
-	for (int t = 0; t < MAX_K; ) {
-		if (ready_for_repair.empty() == true) break;
-		pair<int, int> now = ready_for_repair.top();
-		if (now.second > t) {
-			t++;
-			time_flow(repair_ready);
+}
+
+void timeFlowInDesk(vector<int> &desks, vector<int> customer_using_desk, int& count) {
+	for (int i = 1; i < desks.size(); i++) {
+		if (desks[i] > 0) {
+			desks[i]--;
+			if (desks[i] == 0) {
+				count++;
+				customer_using_desk[i] = 0;
+			}
+		}
+	}
+}
+
+
+int Solution(int target_recep, int target_repair) {
+	int finished_customer = 0;
+	int total_customer = customer_arrive.size();
+	int now_time = 0;
+	int result = 0;
+
+	while (finished_customer < total_customer) {
+		//cout << finished_customer << " " << total_customer << endl;
+		bool recep_flow_ready, repair_flow_ready;
+		recep_flow_ready = repair_flow_ready = false;
+
+		if(customer_arrive.empty() == false){
+			pair<int, int> customer = customer_arrive.front();
+			int empty_recep_desk = findEmptyDesk(recep_ready);
+			if (customer.second <= now_time && empty_recep_desk != NO_EMPTY_DESK) {
+				recep_ready[empty_recep_desk] = recep_delay[empty_recep_desk];
+				customer_using_recep[empty_recep_desk] = customer.first;
+				recep_used_by_customer[customer.first] = empty_recep_desk;
+				customer_arrive.pop();
+			}
+			else {
+				recep_flow_ready = true;
+			}
 		}
 		else {
-			int foundDesk = findUsableDesk(repair_ready);
+			recep_flow_ready = true;
+		}
 
-			if (foundDesk == -1) {
-				t++;
-				time_flow(repair_ready);
+		if (repair_queue.empty() == false) {
+			int repair_customer = repair_queue.front();
+			int empty_repair_desk = findEmptyDesk(repair_ready);
+			if (empty_repair_desk != NO_EMPTY_DESK) {
+				repair_ready[empty_repair_desk] = repair_delay[empty_repair_desk];
+				customer_using_repair[empty_repair_desk] = repair_customer;
+				repair_queue.pop();
+				if (recep_used_by_customer[repair_customer] == target_recep && empty_repair_desk == target_repair) {
+					result += repair_customer;
+				}
 			}
 			else {
-				repair_ready[foundDesk] = repair_delay[foundDesk];
-				if (foundDesk == B && used_reception[now.first] == A) result += (now.first + 1);
-				ready_for_repair.pop();
+				repair_flow_ready = true;
 			}
+		}
+		else {
+			repair_flow_ready = true;
+		}
+
+		if (recep_flow_ready == true && repair_flow_ready == true) {
+			now_time++;
+			timeFlowInDesk(recep_ready, customer_using_recep, repair_queue);
+			timeFlowInDesk(repair_ready, customer_using_repair, finished_customer);
 		}
 	}
 
-	if (result == 0) return -1;
+	if (result == 0) result = -1;
+
 	return result;
 }
 
 int main(void) {
 	int T;
+
 	cin >> T;
+
 	for (int t = 0; t < T; t++) {
-		cin >> N >> M >> K >> A >> B;
-		A--;
-		B--;
-		
-		reception_delay.clear();
-		repair_delay.clear();
-		customer_arrive.clear();
-		reception_ready.clear();
-		repair_ready.clear();
-		used_reception.clear();
+		int recep_desk, repair_desk, customer_num, target_recep, target_repair;
 
-		for (int n = 0; n < N; n++) {
-			int in_a;
-			cin >> in_a;
-			reception_delay.push_back(in_a);
-			reception_ready.push_back(0);
+		cin >> recep_desk >> repair_desk >> customer_num >> target_recep >> target_repair;
+
+		recep_delay.push_back(0);
+		repair_delay.push_back(0);
+		recep_ready.push_back(0);
+		repair_ready.push_back(0);
+		customer_using_recep.push_back(0);
+		customer_using_repair.push_back(0);
+		recep_used_by_customer.push_back(0);
+
+		for (int i = 0; i < recep_desk; i++) {
+			int input_delay;
+			cin >> input_delay;
+			recep_delay.push_back(input_delay);
+			recep_ready.push_back(0);
+			customer_using_recep.push_back(0);
 		}
 
-		for (int m = 0; m < M; m++) {
-			int in_b;
-			cin >> in_b;
-			repair_delay.push_back(in_b);
+		for (int i = 0; i < repair_desk; i++) {
+			int input_delay;
+			cin >> input_delay;
+			repair_delay.push_back(input_delay);
 			repair_ready.push_back(0);
+			customer_using_repair.push_back(0);
 		}
 
-		for (int k = 0; k < K; k++) {
-			int in_k;
-			cin >> in_k;
-			customer_arrive.push_back(in_k);
-			used_reception.push_back(0);
+		for (int i = 0; i < customer_num; i++) {
+			int input_arrive;
+			cin >> input_arrive;
+			customer_arrive.push(make_pair(i+1,input_arrive));
+			recep_used_by_customer.push_back(0);
 		}
 
-		int result = Solution();
+		int result = Solution(target_recep, target_repair);
 
 		cout << "#" << t + 1 << " " << result << endl;
+
+		recep_delay.clear();
+		repair_delay.clear();
+		recep_ready.clear();
+		repair_ready.clear();
+		customer_using_recep.clear();
+		customer_using_repair.clear();
+		recep_used_by_customer.clear();
 	}
 
-	system("pause");
 
 	return 0;
 }
