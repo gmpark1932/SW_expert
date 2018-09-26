@@ -1,0 +1,95 @@
+#include <iostream>
+#include <cstring>
+#include <algorithm>
+
+using namespace std;
+
+#define MAX_D 22
+#define INF_PASS_NUM 30
+
+int input_ab[MAX_D][MAX_D];
+int cur_ab[MAX_D][MAX_D];
+
+void setCol(int target_col, int max_row, int set_num) {
+	//memset(cur_ab[target_col], set_num, sizeof(cur_ab[target_col]));
+
+	for (int i = 0; i < max_row; i++) {
+		cur_ab[i][target_col] = set_num;
+	}
+
+}
+
+void desetCol(int target_col, int max_row) {
+	for (int i = 0; i < max_row; i++) {
+		cur_ab[i][target_col] = input_ab[i][target_col];
+	}
+}
+
+bool passCheck(int row, int col, int pass_num) {
+	for (int j = 0; j < row; j++) {
+		int max = 0;
+		int cur_num = cur_ab[j][0];
+		bool pass_in_col = false;
+		for (int i = 0; i < col; i++) {
+			if (max >= pass_num) {
+				pass_in_col = true;
+				break;
+			}
+
+			if (cur_num == cur_ab[j][i])
+				max++;
+			else {
+				cur_num = cur_ab[j][i];
+				max = 1;
+			}
+		}
+		if (max >= pass_num) pass_in_col = true;
+
+		if (pass_in_col == false) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+int getMinPassNum(int row, int col, int pass_num, int start_col, int cur_result) {
+	if (start_col > col) return INF_PASS_NUM;
+	if (passCheck(row, col, pass_num) == true) return cur_result;
+
+	int resultA, resultB, not_set_result;
+
+	not_set_result = getMinPassNum(row, col, pass_num, start_col + 1, cur_result);
+
+	setCol(start_col, row, 0);
+	resultA = getMinPassNum(row, col, pass_num, start_col + 1, cur_result + 1);
+
+	setCol(start_col, row, 1);
+	resultB = getMinPassNum(row, col, pass_num, start_col + 1, cur_result + 1);
+
+	desetCol(start_col, row);
+	return min(min(resultA, resultB), not_set_result);
+}
+
+int main(void) {
+	int T;
+	cin >> T;
+	for (int t = 0; t < T; t++) {
+		//memset(input_ab, 0, sizeof(input_ab));
+		int D, W, K;
+		cin >> D >> W >> K;
+		for (int i = 0; i < D; i++) {
+			for (int j = 0; j < W; j++) {
+				int c;
+				cin >> c;
+				input_ab[j][i] = c;
+				cur_ab[j][i] = c;
+			}
+		}
+
+		int result = getMinPassNum(W, D, K, 0, 0);
+		cout << "#" << t + 1 << " " << result << endl;
+	}
+
+	return 0;
+}
