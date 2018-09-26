@@ -1,94 +1,91 @@
 #include <iostream>
 #include <cstring>
 #include <algorithm>
+#include <bitset>
 
 using namespace std;
 
-#define MAX_D 22
+#define MAX_D 20
 #define INF_PASS_NUM 30
 
 int input_ab[MAX_D][MAX_D];
 int cur_ab[MAX_D][MAX_D];
+int check[MAX_D][MAX_D];
+int max_cnt = INF_PASS_NUM;
 
-void setCol(int target_col, int max_row, int set_num) {
-	//memset(cur_ab[target_col], set_num, sizeof(cur_ab[target_col]));
-
-	for (int i = 0; i < max_row; i++) {
-		cur_ab[i][target_col] = set_num;
-	}
-
-}
-
-void desetCol(int target_col, int max_row) {
-	for (int i = 0; i < max_row; i++) {
-		cur_ab[i][target_col] = input_ab[i][target_col];
+void setRow(int target_row, int max_col, int set_num) {
+	for (int i = 0; i < max_col; i++) {
+		cur_ab[target_row][i] = set_num;
 	}
 }
 
-bool passCheck(int row, int col, int pass_num) {
-	for (int j = 0; j < row; j++) {
-		int max = 0;
-		int cur_num = cur_ab[j][0];
-		bool pass_in_col = false;
-		for (int i = 0; i < col; i++) {
-			if (max >= pass_num) {
-				pass_in_col = true;
-				break;
+void desetRow(int target_row, int max_col) {
+	for (int i = 0; i < max_col; i++) {
+		cur_ab[target_row][i] = input_ab[target_row][i];
+	}
+}
+
+bitset<MAX_D> passCheck(int cur_row, int col, int pass_num, bitset<MAX_D> already_pass, int set_val) {
+	for (int i = 0; i < col; i++) {
+		int cur_val;
+		if (set_val == -1) cur_val = input_ab[cur_row][i];
+		else cur_val = set_val;
+		
+		if (cur_row == 0) check[0][i] = 1;
+		else {
+			if (cur_ab[cur_row - 1][i] == cur_val) {
+				check[cur_row][i] = check[cur_row - 1][i] + 1;
 			}
-
-			if (cur_num == cur_ab[j][i])
-				max++;
 			else {
-				cur_num = cur_ab[j][i];
-				max = 1;
+				check[cur_row][i] = 1;
 			}
 		}
-		if (max >= pass_num) pass_in_col = true;
 
-		if (pass_in_col == false) {
-			return false;
-		}
+		cur_ab[cur_row][i] = cur_val;
+
+		if (check[cur_row][i] >= pass_num) already_pass[i] = 1;
 	}
 
-	return true;
+	return already_pass;
 }
 
-int getMinPassNum(int row, int col, int pass_num, int start_col, int cur_result) {
-	if (start_col > col) return INF_PASS_NUM;
-	if (passCheck(row, col, pass_num) == true) return cur_result;
+void getMinPassNum(int row, int col, int pass_num, int start_row, int cur_result,bitset<MAX_D> already_pass) {
+	if (cur_result > row) return;
+	
+	if (start_row == row) {
+		if (already_pass.count() == col) max_cnt = (max_cnt > cur_result) ? cur_result : max_cnt;
+		return;
+	}
 
-	int resultA, resultB, not_set_result;
-
-	not_set_result = getMinPassNum(row, col, pass_num, start_col + 1, cur_result);
-
-	setCol(start_col, row, 0);
-	resultA = getMinPassNum(row, col, pass_num, start_col + 1, cur_result + 1);
-
-	setCol(start_col, row, 1);
-	resultB = getMinPassNum(row, col, pass_num, start_col + 1, cur_result + 1);
-
-	desetCol(start_col, row);
-	return min(min(resultA, resultB), not_set_result);
+	getMinPassNum(row, col, pass_num, start_row + 1, cur_result, passCheck(start_row,col,pass_num,already_pass,-1));
+	getMinPassNum(row, col, pass_num, start_row + 1, cur_result + 1, passCheck(start_row, col, pass_num, already_pass, 0));
+	getMinPassNum(row, col, pass_num, start_row + 1, cur_result + 1, passCheck(start_row, col, pass_num, already_pass, 1));
 }
 
 int main(void) {
+	ios::sync_with_stdio(false);
+	cin.tie(0); cout.tie(0);
+
 	int T;
 	cin >> T;
 	for (int t = 0; t < T; t++) {
-		//memset(input_ab, 0, sizeof(input_ab));
+		memset(check, 0, sizeof(check));
+		max_cnt = INF_PASS_NUM;
+
 		int D, W, K;
 		cin >> D >> W >> K;
 		for (int i = 0; i < D; i++) {
 			for (int j = 0; j < W; j++) {
 				int c;
 				cin >> c;
-				input_ab[j][i] = c;
-				cur_ab[j][i] = c;
+				input_ab[i][j] = c;
 			}
 		}
 
-		int result = getMinPassNum(W, D, K, 0, 0);
-		cout << "#" << t + 1 << " " << result << endl;
+		bitset<MAX_D> already_pass(0);
+
+		getMinPassNum(D, W, K, 0, 0,already_pass);
+		cout << "#" << t + 1 << " " << max_cnt << endl;
 	}
 
 	return 0;
