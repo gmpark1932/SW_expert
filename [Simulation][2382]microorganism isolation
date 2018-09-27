@@ -1,0 +1,137 @@
+#include <iostream>
+#include <vector>
+#include <cstring>
+
+using namespace std;
+
+#define MAX_N 110
+#define MAX_KM 1010
+
+int ground[2][MAX_N][MAX_N];
+
+
+enum Direction{ UP, DOWN, LEFT, RIGHT };
+
+inline Direction getDirection(int dir) {
+	return (Direction)(dir - 1);
+}
+
+typedef struct {
+	int id;
+	int row;
+	int col;
+	int val;
+	Direction dir;
+	int before_unify;
+}BioNode;
+
+vector<BioNode> vacterias;
+
+vector<pair<int, int>> move_point = { {-1,0},{1,0},{0,-1},{0,1} };
+
+inline pair<int, int> getNextPoint(pair<int, int> cur_point, Direction dir) {
+	pair<int, int> move = move_point[(int)dir];
+	return { cur_point.first + move.first , cur_point.second + move.second };
+}
+
+inline bool isBorder(pair<int, int> cur_point, int left_border, int right_border) {
+	return (cur_point.first == left_border || cur_point.first == right_border || cur_point.second == left_border || cur_point.second == right_border);
+}
+
+Direction oppositeDirection(Direction dir) {
+	if (dir == UP) return DOWN;
+	if (dir == DOWN) return UP;
+	if (dir == LEFT) return RIGHT;
+	return LEFT;
+}
+
+int Solution(int cell_size, int time_limit) {
+	int left_border = 0;
+	int right_border = cell_size - 1;
+
+	for (int t = 0; t < time_limit; t++) {
+		int next_ground = (t + 1) % 2;
+		int cur_ground = t % 2;
+
+		memset(ground[next_ground], 0, sizeof(ground[next_ground]));
+
+		for (vector<BioNode>::iterator itr = vacterias.begin(); itr != vacterias.end(); itr++) {
+			if (itr->val == 0) continue;
+			itr->before_unify = 0;
+
+			pair<int, int> next_point = getNextPoint(make_pair(itr->row, itr->col), itr->dir);
+
+			if (ground[next_ground][next_point.first][next_point.second] != 0) {
+				BioNode* temp = &vacterias[ground[next_ground][next_point.first][next_point.second]];
+				if (temp->before_unify == 0) {
+					if (itr->val >= temp->val) {
+						itr->before_unify = itr->val;
+						itr->val += temp->val;
+						temp->val = 0;
+					}
+					else {
+						temp->before_unify = temp->val;
+						temp->val += itr->val;
+						itr->val = 0;
+					}
+				}
+				else {
+					if (itr->val >= temp->before_unify) {
+						itr->before_unify = itr->val;
+						itr->val += temp->val;
+						temp->val = 0;
+					}
+					else {
+						temp->val += itr->val;
+						itr->val = 0;
+					}
+				}
+			}else if (isBorder(next_point, left_border, right_border) == true) {
+				itr->val /= 2;
+				itr->dir = oppositeDirection(itr->dir);
+			}
+
+			if (itr->val != 0) {
+				ground[next_ground][next_point.first][next_point.second] = itr->id;
+				itr->row = next_point.first;
+				itr->col = next_point.second;
+			}
+		}
+	}
+
+	int count = 0;
+
+	for (vector<BioNode>::iterator itr = vacterias.begin(); itr != vacterias.end(); itr++) {
+		if (itr->val != 0) count += itr->val;
+	}
+
+	return count;
+}
+
+int main(void) {
+	int T;
+	cin >> T;
+	for (int t = 0; t < T; t++) {
+		memset(ground, 0, sizeof(ground));
+		vacterias.clear();
+
+		int cell_size, time_limit, num;
+		cin >> cell_size >> time_limit >> num;
+		
+		vacterias.push_back({ 0,0,0,UP });
+
+		for (int id = 1; id <= num; id++) {
+			int row, col, val, direction;
+			cin >> row >> col >> val >> direction;
+			vacterias.push_back({ id,row,col,val,getDirection(direction) });
+			ground[0][row][col] = id;
+		}
+
+		int result = Solution(cell_size,time_limit);
+
+		cout << "#" << t + 1 << " " << result << endl;
+
+	}
+
+	return 0;
+}
