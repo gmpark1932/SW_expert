@@ -1,0 +1,104 @@
+#include <iostream>
+#include <cstdlib>
+#include <vector>
+
+using namespace std;
+
+#define MAX_N 13
+#define MAX_CORE 13
+#define LINE_INF 13*13+100
+
+enum Direction{ UP, RIGHT, DOWN, LEFT };
+#define DirectionSize 4
+
+vector<pair<int,int>> core_point;
+
+bool setNextCoreConnectTo(vector<Direction> &core_connect_to){
+    bool can_next = true;
+
+    int carry = 0;
+    for(vector<Direction>::reverse_iterator ritr = core_connect_to.rbegin();
+        ritr != core_connect_to.rend(); ritr++){
+            int tmp = (int)(*ritr) + 1 + carry;
+            if(tmp >= DirectionSize){
+                carry = 1;
+                tmp -= DirectionSize;
+            }
+            *ritr = (Direction)tmp;
+    }
+
+    if(carry == 1) can_next = false;
+
+    return can_next;
+}
+
+int calLineByDirection(Direction dir, pair<int,int> point,int n){
+    int result=LINE_INF;
+
+    switch(dir){
+    case UP:
+        {
+            result = point.first;
+        }break;
+    case RIGHT:
+        {
+            result = (n-1) - point.second;
+        }break;
+    case DOWN:
+        {
+            result = (n-1) - point.first;
+        }break;
+    case LEFT:
+        {
+            result = point.second;
+        }break;
+    default:
+        result = LINE_INF;
+    }
+
+    return result;
+}
+
+int findMinConnectLineSum(int n){
+    vector<pair<int,int>> line_sum;
+    vector<Direction> core_connect_to(n);
+    
+    fill(core_connect_to.begin(), core_connect_to.end(), 0);
+    
+    int min_sum = LINE_INF;
+    do{
+        int now_sum = 0;
+        int idx = 0;
+        for(vector<pair<int,int>>::iterator itr = core_point.begin();
+            itr!= core_point.end(); itr++,idx++){
+                now_sum += calLineByDirection(core_connect_to[idx],*itr,n);
+        }
+    }while(setNextCoreConnectTo(core_connect_to) == true);
+}
+
+int main(void){
+    int T;
+    cin >> T;
+    for(int t=0;t<T;t++){
+        core_point.clear();
+
+        int N;
+        cin >> N;
+        
+        for(int i=0;i<N;i++){
+            for(int j=0;j<N;j++){
+                int c;
+                cin >> c;
+                if(c == 1){
+                    core_point.push_back(make_pair(i,j));
+                }
+            }
+        }
+
+        int result = findMinConnectLineSum(N);
+
+        cout << "#" << t+1 << " " << result << endl; 
+    }
+
+    return 0;
+}
