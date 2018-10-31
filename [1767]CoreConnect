@@ -1,7 +1,8 @@
-#define DEBUG true
+#define DEBUG false
 
 #include <iostream>
 #include <cstdlib>
+#include <cstring>
 #include <vector>
 #include <algorithm>
 
@@ -50,7 +51,7 @@ public:
 		else if (x.connected_core < a.connected_core) {
 			return false;
 		}
-		else if (x.line_sum > a.line_sum) {
+		else if (x.line_sum < a.line_sum) {
 			return true;
 		}
 		else return false;
@@ -63,8 +64,8 @@ public:
 	}
 
 	ResultStruct operator = (ResultStruct a) {
-		this->connected_core += a.connected_core;
-		this->line_sum += a.line_sum;
+		this->connected_core = a.connected_core;
+		this->line_sum = a.line_sum;
 		return *this;
 	}
 
@@ -168,19 +169,31 @@ ResultStruct ConnectToDir(Direction dir, pair<int, int> cur_point,int n) {
 	return result;
 }
 
+ResultStruct final_result(0, 0);
 
-ResultStruct findMinConnectLineSum(ResultStruct cur_result, int idx,int n) {
+void findMinConnectLineSum(ResultStruct cur_result, int idx,int n) {
 	ResultStruct future_result(0, 0);
 	
 	if (DEBUG) {
 		printf("idx: %d\n", idx);
 		printf("result: (%d,%d)\n", cur_result.connected_core, cur_result.line_sum);
-		dumpData(n);
+		//dumpData(n);
 	}
 	
 
-	if (idx >= point_arr.size()) return cur_result;
-	
+	if (idx >= point_arr.size()) {
+		if (cur_result > final_result) {
+			final_result = cur_result;
+			//ForDebug
+			if (DEBUG) {
+				printf("result: (%d,%d)\n", cur_result.connected_core, cur_result.line_sum);
+				dumpData(n);
+			}
+		}
+
+		
+		return;
+	}
 	for (int dir = 0; dir < 4; dir++) {
 		bool disconnect_needed = false;
 		
@@ -190,13 +203,10 @@ ResultStruct findMinConnectLineSum(ResultStruct cur_result, int idx,int n) {
 		if (result_to_dir.isZero() == false) disconnect_needed = true;
 
 		result_to_dir = result_to_dir + cur_result;
-		ResultStruct tmp_result = findMinConnectLineSum(result_to_dir, idx + 1,n);
-		if (tmp_result > future_result) future_result = tmp_result;
-
+		findMinConnectLineSum(result_to_dir, idx + 1,n);
+		
 		if (disconnect_needed == true) DisconnectToDir((Direction)dir, point_arr[idx],n);
 	}
-
-	return future_result + cur_result;
 }
 
 int main(void) {
@@ -220,9 +230,9 @@ int main(void) {
 		}
 
 		ResultStruct cur(0, 0);
-		cur = findMinConnectLineSum(cur, 0, N);
+		findMinConnectLineSum(cur, 0, N);
 
-		cout << "#" << t + 1 << " " << cur.connected_core << endl;
+		cout << "#" << t + 1 << " " << final_result.line_sum << endl;
 	}
 
 	return 0;
