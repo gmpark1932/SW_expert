@@ -126,6 +126,8 @@ Result FindMaxCorConnection(int idx,int n) {
 			result = toDirResult;
 		}
 	}
+
+	core_arr[idx].connect = NOT;
 	
 	return result;
 }
