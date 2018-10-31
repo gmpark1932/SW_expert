@@ -1,3 +1,5 @@
+#define DEBUG true
+
 #include <iostream>
 #include <cstdlib>
 #include <vector>
@@ -13,6 +15,15 @@ enum MapComponent {EMPTY,CORE,LINE,DISCONNECT_STOP};
 MapComponent core_map[MAX_N][MAX_N];
 
 vector<pair<int, int>> point_arr;
+
+void dumpData(int n) {
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			printf("%d ", core_map[i][j]);
+		}
+		printf("\n");
+	}
+}
 
 class ResultStruct {
 public:
@@ -92,51 +103,14 @@ public:
 };
 
 #define isInBoundary(pair_point, size) (pair_point.first >= 0 && pair_point.first <= size-1 && pair_point.second >= 0 && pair_point.second <= size-1)
+#define elementByPair(arr,pair) (arr[pair.first][pair.second])
 
 pair<int, int> pairPlus(pair<int, int> a, pair<int, int> b) {
 	return { a.first + b.first,a.second + b.second };
 }
 
-ResultStruct ConnectToDir(Direction dir, pair<int, int> cur_point,int n) {
-	pair<int, int> adder = dir.getAdder();
-	pair<int, int> moving_point = cur_point;
-	ResultStruct result(0, 0);
 
-	moving_point = pairPlus(moving_point, adder);
-
-	bool fail_to_connect = false;
-
-	while (isInBoundary(moving_point, n)) {
-		if (core_map[moving_point.first][moving_point.second] == CORE
-			|| core_map[moving_point.first][moving_point.second] == LINE) {
-			
-			fail_to_connect = true;
-
-			if (core_map[moving_point.first][moving_point.second] == LINE)
-				core_map[moving_point.first][moving_point.second] = DISCONNECT_STOP;
-			
-			break;
-		}
-
-		if (core_map[moving_point.first][moving_point.second] == EMPTY) {
-			core_map[moving_point.first][moving_point.second] = LINE;
-			result.plusLineSum(1);
-		}
-
-		moving_point = pairPlus(moving_point, adder);
-	}
-
-	if (fail_to_connect == true) {
-		DisconnectToDir(dir, cur_point, n);
-		ResultStruct empty_result(0, 0);
-		return empty_result;
-	}
-
-	result.plusConnectedCore(1);
-	return result;
-}
-
-void DisconnectToDir(Direction dir, pair<int, int> cur_point,int n) {
+void DisconnectToDir(Direction dir, pair<int, int> cur_point, int n) {
 	pair<int, int> adder = dir.getAdder();
 	pair<int, int> moving_point = cur_point;
 	moving_point = pairPlus(moving_point, adder);
@@ -149,17 +123,63 @@ void DisconnectToDir(Direction dir, pair<int, int> cur_point,int n) {
 			break;
 		}
 
-		if (core_map[moving_point.first][moving_point.second] == LINE) 
+		if (core_map[moving_point.first][moving_point.second] == LINE)
 			core_map[moving_point.first][moving_point.second] = EMPTY;
 
 		moving_point = pairPlus(moving_point, adder);
 	}
 }
 
+bool isCanConnectToDir(Direction dir, pair<int, int> cur_point, int n) {
+	pair<int, int> adder = dir.getAdder();
+	pair<int, int> moving_point = cur_point;
+
+	moving_point = pairPlus(moving_point, adder);
+
+	while (isInBoundary(moving_point, n)) {
+		if (elementByPair(core_map, moving_point) != EMPTY) {
+			return false;
+		}
+		moving_point = pairPlus(moving_point, adder);
+	}
+
+	return true;
+}
+
+ResultStruct ConnectToDir(Direction dir, pair<int, int> cur_point,int n) {
+	pair<int, int> adder = dir.getAdder();
+	pair<int, int> moving_point = cur_point;
+	ResultStruct result(0, 0);
+
+	if (isCanConnectToDir(dir, cur_point, n) == false) return result;
+
+	moving_point = pairPlus(moving_point, adder);
+
+	int line_count = 0;
+	while (isInBoundary(moving_point, n)) {
+		elementByPair(core_map, moving_point) = LINE;
+		line_count++;
+		moving_point = pairPlus(moving_point, adder);
+	}
+
+	result.connected_core = 1;
+	result.line_sum = line_count;
+
+	return result;
+}
+
+
 ResultStruct findMinConnectLineSum(ResultStruct cur_result, int idx,int n) {
 	ResultStruct future_result(0, 0);
+	
+	if (DEBUG) {
+		printf("idx: %d\n", idx);
+		printf("result: (%d,%d)\n", cur_result.connected_core, cur_result.line_sum);
+		dumpData(n);
+	}
+	
 
-	if (idx >= n) return future_result;
+	if (idx >= point_arr.size()) return cur_result;
 	
 	for (int dir = 0; dir < 4; dir++) {
 		bool disconnect_needed = false;
@@ -176,7 +196,7 @@ ResultStruct findMinConnectLineSum(ResultStruct cur_result, int idx,int n) {
 		if (disconnect_needed == true) DisconnectToDir((Direction)dir, point_arr[idx],n);
 	}
 
-	return future_result;
+	return future_result + cur_result;
 }
 
 int main(void) {
