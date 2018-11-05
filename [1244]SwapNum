@@ -1,0 +1,60 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+vector<int> g_number;
+
+void process_dp(int index, int remain_swap) {	
+	if (g_number.size() <= 1) return;
+	
+	if (index == g_number.size()) {
+		if (remain_swap % 2 == 1) {
+			swap(g_number[index - 2], g_number[index - 1]);
+		}
+		return;
+	}
+
+	vector<int> max_indexs;
+	int max_val = 0;
+	for (int i = index+1; i < g_number.size(); i++) {
+		if (g_number[i] > max_val) {
+			max_indexs.clear();
+			max_val = g_number[i];
+			max_indexs.push_back(i);
+		}
+		else if (g_number[i] == max_val) {
+			max_indexs.push_back(i);
+		}
+	}
+
+
+}
+
+int main(void) {
+	int T;
+	cin >> T;
+	for (int t = 1; t <= T; t++) {
+		g_number.clear();
+
+		int number;
+		cin >> number;
+		int swap_num;
+		cin >> swap_num;
+
+		int divider = 10;
+		while (number / divider != 0) divider *= 10;
+
+		divider /= 10;
+		while (divider != 0) {
+			g_number.push_back(number / divider);
+			number %= divider;
+			divider /= 10;
+		}
+
+
+	}
+
+	return 0;
+}
