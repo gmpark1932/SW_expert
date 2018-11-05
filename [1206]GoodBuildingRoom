@@ -1,0 +1,52 @@
+#include <iostream>
+#include <cstring>
+#include <algorithm>
+
+#define MAX_BUILDING 1001
+
+using namespace std;
+
+int g_heights[MAX_BUILDING];
+
+int count_good_room(int building_num) {
+	if (building_num <= 4) {
+		return 0;
+	}
+
+	int good_room = 0;
+
+	int left = 0;
+	int right = 4;
+	int mid = 2;
+	for (; right < building_num;left++,right++,mid++) {
+		int left_two_max = max(g_heights[left], g_heights[left + 1]);
+		int right_two_max = max(g_heights[right], g_heights[right - 1]);
+
+		int left_result = g_heights[mid] - left_two_max;
+		int right_result = g_heights[mid] - right_two_max;
+		int result = min(left_result, right_result);
+		if (result > 0) good_room += result;
+	}
+
+	return good_room;
+}
+
+int main(void) {
+	for (int t = 1; t <= 10; t++) {
+		memset(g_heights, 0, sizeof(g_heights));
+		
+		int building_num;
+		cin >> building_num;
+		
+		for (int i = 0; i < building_num; i++) {
+			int h;
+			cin >> h;
+			g_heights[i] = h;
+		}
+
+		int result = count_good_room(building_num);
+		cout << "#" << t << " " << result << endl;
+	}
+
+	return 0;
+}
