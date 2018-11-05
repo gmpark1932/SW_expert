@@ -1,160 +1,120 @@
-#define DEBUG false
-
 #include <iostream>
-#include <cstdlib>
 #include <vector>
-#include <algorithm>
+#include <cstdlib>
+#include <cstring>
+
+#define MAX_N 13
 
 using namespace std;
 
-#define MAX_N 13
-#define MAX_CORE 13
-#define LINE_INF 13*13+100
+int g_max_connect, g_min_line;
+vector<pair<int,int>> g_cores;
+int map[MAX_N][MAX_N];
 
-enum Connection{LEFT,RIGHT,UP,DOWN,NOT};
+const pair<int, int> dir_adder[] = { {1,0},{-1,0},{0,1},{0,-1} };
+int g_N;
 
-struct CoreNode {
-	int row; int col;
-	Connection connect;
-	int line;
-};
-
-vector<CoreNode> core_arr;
-
-struct Result {
-	int connected_core;
-	int line_sum;
-};
-
-bool isCanConnect(int idx,Connection dir) {
-	bool cant_connect = false;
-	
-	for (int i = 0; i < core_arr.size(); i++) {
-		if (i == idx) continue;
-		
-		switch (dir) {
-		case LEFT: {
-			if (core_arr[i].col < core_arr[idx].col) {
-				if ((core_arr[i].row == core_arr[idx].row)
-					|| (core_arr[i].row < core_arr[idx].row && core_arr[i].connect == DOWN)
-					|| (core_arr[i].row > core_arr[idx].row && core_arr[i].connect == UP)) {
-					cant_connect = true;
-				}
-			}
-		}break;
-		case RIGHT: {
-			if (core_arr[i].col > core_arr[idx].col) {
-				if ((core_arr[i].row == core_arr[idx].row)
-					|| (core_arr[i].row < core_arr[idx].row && core_arr[i].connect == DOWN)
-					|| (core_arr[i].row > core_arr[idx].row && core_arr[i].connect == UP)) {
-					cant_connect = true;
-				}
-			}
-		}break;
-		case UP: {
-			if (core_arr[i].row < core_arr[idx].row) {
-				if ((core_arr[i].col == core_arr[idx].col)
-					|| (core_arr[i].col < core_arr[idx].col && core_arr[i].connect == RIGHT)
-					|| (core_arr[i].col > core_arr[idx].col && core_arr[i].connect == LEFT)) {
-					cant_connect = true;
-				}
-			}
-		}break;
-		case DOWN: {
-			if (core_arr[i].row > core_arr[idx].row) {
-				if ((core_arr[i].col == core_arr[idx].col)
-					|| (core_arr[i].col < core_arr[idx].col && core_arr[i].connect == RIGHT)
-					|| (core_arr[i].col > core_arr[idx].col && core_arr[i].connect == LEFT)) {
-					cant_connect = true;
-				}
-			}
-		}
-		}
+bool is_valid(pair<int, int> point) {
+	if (point.first >= 0 && point.second >= 0 && point.first <= g_N - 1 && point.second <= g_N - 1) {
+		return true;
 	}
-
-	return !cant_connect;
+	return false;
 }
 
-int getLineLength(int idx,int n) {
-	int result = 0;
-	
-	switch (core_arr[idx].connect) {
-	case LEFT: {
-		result = core_arr[idx].col;
-	}break;
-	case RIGHT: {
-		result = n-1 - core_arr[idx].col;
-	}break;
-	case UP: {
-		result = core_arr[idx].row;
-	}break;
-	case DOWN: {
-		result = n - 1 - core_arr[idx].row;
-	}break;
-	case NOT: {
-		result = 0;
-	}
-	}
-
-	return result;
-}
-
-Result FindMaxCorConnection(int idx,int n) {
-	if (idx >= core_arr.size()) {
-		return { 0,0 };
-	}
-
-	Result result = { 0,0 };
-
-	for (int dir = 0; dir < 4; dir++) {
-		Connection target_direction = (Connection)dir;
-
-		Result toDirResult;
-		if (isCanConnect(idx, target_direction) == true) {
-			core_arr[idx].connect = target_direction;
-			toDirResult = FindMaxCorConnection(idx + 1, n);
-			toDirResult.connected_core += 1;
-			toDirResult.line_sum += getLineLength(idx, n);
+bool connect(pair<int, int> point, int dir,int &added_line) {
+	if(is_valid(point)) {
+		if (map[point.first][point.second] != 0) {
+			return false;
 		}
 		else {
-			core_arr[idx].connect = NOT;
-			toDirResult = FindMaxCorConnection(idx + 1, n);
-		}
-
-		if (result.connected_core < toDirResult.connected_core
-			|| (result.connected_core == toDirResult.connected_core && result.line_sum > toDirResult.line_sum)) {
-			result = toDirResult;
+			map[point.first][point.second] = 2; // line
+			added_line++;
+			pair<int, int> next = { point.first + dir_adder[dir].first,point.second + dir_adder[dir].second };
+			if (connect(next, dir, added_line) == false) {
+				if(map[point.first][point.second] == 2)
+					map[point.first][point.second] = 0;
+				return false;
+			}
 		}
 	}
 
-	core_arr[idx].connect = NOT;
-	
-	return result;
+	return true;
+}
+
+void disconnect(pair<int, int> point, int dir) {
+	pair<int, int> next = { point.first + dir_adder[dir].first, point.second + dir_adder[dir].second };
+	while (is_valid(next)) {
+		if (map[next.first][next.second] != 2)
+			break;
+
+		map[next.first][next.second] = 0;
+		next.first += dir_adder[dir].first;
+		next.second += dir_adder[dir].second;
+	}
+}
+
+void process_all_dfs(int core_index, int max_connect, int min_line) {	
+	if (core_index == g_cores.size()) {
+		if (max_connect > g_max_connect) {
+			g_max_connect = max_connect;
+			g_min_line = min_line;
+
+
+		}
+		else if (max_connect == g_max_connect && min_line < g_min_line) {
+			g_min_line = min_line;
+		}
+
+		return;
+	}
+
+	pair<int, int> cur_core = g_cores[core_index];
+	for (int dir = 0; dir < 4; dir++) {
+		pair<int, int> next_point = { cur_core.first + dir_adder[dir].first, cur_core.second + dir_adder[dir].second };
+		int added_line = 0;
+		bool connect_success = connect(next_point, dir, added_line);
+		if (connect_success == false) continue;
+		else {
+			process_all_dfs(core_index + 1, max_connect + 1, min_line + added_line);
+			disconnect(cur_core, dir);
+		}
+	}
+
+	process_all_dfs(core_index + 1, max_connect, min_line);
 }
 
 int main(void) {
 	int T;
 	cin >> T;
-	for (int t = 0; t < T; t++) {
+
+	for (int t = 1; t <= T; t++) {
+		g_max_connect = g_min_line = 0;
+		memset(map, 0, sizeof(map));
+		g_cores.clear();
+
 		int N;
 		cin >> N;
-
-		core_arr.clear();
+		g_N = N;
 		for (int i = 0; i < N; i++) {
 			for (int j = 0; j < N; j++) {
 				int c;
 				cin >> c;
-				
-				if (c == 1) core_arr.push_back({ i,j,NOT,0 });
+				map[i][j] = c;
+
+				if (c == 1) {
+					if (i == 0 || j == 0 || i == N - 1 || j == N - 1) {
+						g_max_connect++;
+					}
+					else {
+						g_cores.push_back(make_pair(i, j));
+					}
+				}
 			}
 		}
 
-		printf("%d\n", core_arr.size());
+		process_all_dfs(0, g_max_connect, g_min_line);
 
-		Result result;
-		result = FindMaxCorConnection(0, N);
-
-		cout << "#" << t + 1 << " " << result.line_sum << endl;
+		cout << "#" << t << " " << g_min_line << endl;
 	}
 
 	return 0;
