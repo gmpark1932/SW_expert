@@ -1,3 +1,16 @@
+//문제 풀이 방법: dfs를 이용해서 모든 연결 상태를 확인한다.
+//속도를 늘리기 위한 고려점
+//	1)boundary에 붙어 있는 core는 vector에 insert하지 않는다.
+//	2)dfs에서 확인할 사항은
+//		- 4가지 방향으로 연결 가능하면, 연결 하고 dfs(next)
+//		- 4가지 방향 모두 확인 후, 연결 하지 않고 dfs(next)
+//			->처음에는 연결이 불가능하면 연결 하지 않고 dfs(next)를 호출하였는데, 불필요한 호출로 인한 시간 초과 발생
+//			->또한 4방향 모두 연결이 가능할 때, 고려하지 못하는 case가 발생할 수 있었다.
+//	3)dfs에서 결과 update는 마지막 노드(index == vector_size)일때만 수행해야 한다.
+//	시간 복잡도: connect, disconnect는 O(N)
+//				is_valid는 O(1)
+//				process_all_dfs는 O(5^N(4가지 방향과 연결 하지 않는 case를 N의 깊이로 dfs 수행)*N(connect와 disconnect))
+
 #include <iostream>
 #include <vector>
 #include <cstdlib>
